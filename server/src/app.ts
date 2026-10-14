@@ -17,15 +17,38 @@ import groupRoutes from './modules/groups/group.routes';
 
 export const app = express();
 
-// Configurable CORS for separate frontend/backend deployments
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  : '*';
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-app.use(cors({
-  origin: allowedOrigins,
+    const configured = process.env.CORS_ORIGIN;
+    if (!configured || configured.trim() === '*' || configured.trim() === '') {
+      return callback(null, true);
+    }
+
+    const cleanOrigin = origin.trim().replace(/\/$/, '').toLowerCase();
+    const allowed = configured.split(',').map((o) => o.trim().replace(/\/$/, '').toLowerCase());
+
+    if (
+      allowed.includes(cleanOrigin) ||
+      allowed.includes('*') ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin.includes('localhost')
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(null, true);
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
+};
+
+// Apply CORS to all requests & handle preflight OPTIONS
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
