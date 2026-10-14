@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 import { errorHandler } from './middleware/error.middleware';
 
 import authRoutes from './modules/auth/auth.routes';
@@ -15,8 +17,13 @@ import groupRoutes from './modules/groups/group.routes';
 
 export const app = express();
 
+// Configurable CORS for separate frontend/backend deployments
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+  : '*';
+
 app.use(cors({
-  origin: '*',
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -43,5 +50,18 @@ app.use('/api/recurring', recurringRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/groups', groupRoutes);
 
+// Unified single-service deployment: serve built frontend client when present
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
 // Centralized error handler
 app.use(errorHandler);
+

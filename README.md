@@ -100,4 +100,69 @@ Run the test suite verifying currency arithmetic, financial business rules, and 
 ```bash
 npm test
 ```
-Result: All 13 unit and integration test suites pass.
+Result: All unit and integration test suites pass.
+
+---
+
+## 🚀 Deployment Guide
+
+You can deploy this application in either of two ways:
+
+### Option A: Deploy Separately (Frontend & Backend Decoupled)
+
+Best for serverless static frontend (Vercel, Netlify, Cloudflare Pages) + dedicated backend API (Render, Railway, Fly.io, DigitalOcean).
+
+#### 1. Backend Setup (e.g. Render Web Service / Railway)
+- **Root Directory**: `server`
+- **Build Command**: `npm install && npm run build && npm run prisma:push`
+- **Start Command**: `npm start`
+- **Environment Variables**:
+  ```env
+  PORT=5000
+  NODE_ENV=production
+  JWT_SECRET=your_32_char_minimum_random_secret_key
+  DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB?schema=public
+  CORS_ORIGIN=https://your-frontend-domain.vercel.app
+  ```
+
+#### 2. Frontend Setup (e.g. Vercel / Netlify / Cloudflare Pages)
+- **Root Directory**: `client`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variable**:
+  ```env
+  VITE_API_URL=https://your-backend-api.onrender.com
+  ```
+  *(The client will automatically prepend this to `/api` requests).*
+
+---
+
+### Option B: Deploy Together as Single Service (Unified Monolith)
+
+Best for single-server setups (Render Web Service, Railway, VPS, Docker, Heroku). The Express backend serves the built React frontend static assets, handling both UI and `/api` on one single domain with zero CORS setup needed.
+
+#### 1. Configuration
+- **Root Directory**: `.` (Repository Root)
+- **Build Command**:
+  ```bash
+  npm run install:all && npm run build && npm --prefix server run prisma:push
+  ```
+- **Start Command**:
+  ```bash
+  npm start
+  ```
+- **Environment Variables**:
+  ```env
+  PORT=5000
+  NODE_ENV=production
+  JWT_SECRET=your_32_char_minimum_random_secret_key
+  DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB?schema=public
+  ```
+  *(Leave `VITE_API_URL` and `CORS_ORIGIN` empty or unset — the app serves everything on the same origin).*
+
+#### How it works under the hood:
+1. `npm run build` compiles both the backend (`server/dist`) and the frontend (`client/dist`).
+2. Express detects `client/dist` and mounts `express.static` for assets.
+3. Requests to `/api/*` go directly to the Express REST controllers.
+4. All browser navigation routes (`/dashboard`, `/groups`, etc.) return `index.html` for client-side React Router.
+

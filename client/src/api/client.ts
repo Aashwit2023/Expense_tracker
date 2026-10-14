@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// When deployed separately, set VITE_API_URL (e.g. https://api.yourdomain.com)
+// When deployed as single service or in local dev, defaults to '/api'
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const baseURL = rawApiUrl ? `${rawApiUrl.replace(/\/$/, '')}/api` : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
